@@ -17,26 +17,53 @@ def load_image(name, colorkey=None):
     return image
 
 
-class BigBoom(pygame.sprite.Sprite):
-    bombs = load_image("../data/bomb.png")
-    boom = load_image("../data/boom.png")
+class Border(pygame.sprite.Sprite):
+    # строго вертикальный или строго горизонтальный отрезок
+    def __init__(self, x1, y1, x2, y2, all_sprites, horizontal_borders, vertical_borders):
+        super().__init__(all_sprites)
+        if x1 == x2:  # вертикальная стенка
+            self.add(vertical_borders)
+            self.image = pygame.Surface([1, y2 - y1])
+            self.rect = pygame.Rect(x1, y1, 1, y2 - y1)
+        else:  # горизонтальная стенка
+            self.add(horizontal_borders)
+            self.image = pygame.Surface([x2 - x1, 1])
+            self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
 
-    def __init__(self, width, height, *group):
-        # НЕОБХОДИМО вызвать конструктор родительского класса Sprite.
-        # Это очень важно!!!
-        super().__init__(*group)
-        self.width = width
-        self.height = height
-        self.image = BigBoom.bombs
-        self.image_boom = BigBoom.boom
+
+class Mountain(pygame.sprite.Sprite):
+    image = load_image("mountains.png")
+
+    def __init__(self, width, height, all_sprites):
+        super().__init__(all_sprites)
+        self.image = Mountain.image
         self.rect = self.image.get_rect()
-        self.rect.x = random.randrange(0 + self.image.get_width(), width - self.image.get_width())
-        self.rect.y = random.randrange(0 + self.image.get_height(), height - self.image.get_height())
+        # вычисляем маску для эффективного сравнения
+        self.mask = pygame.mask.from_surface(self.image)
+        # располагаем горы внизу
+        self.rect.bottom = height
 
-    def update(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN and \
-                self.rect.collidepoint(event.pos):
-            self.image = self.image_boom
+
+class Landing(pygame.sprite.Sprite):
+    image = load_image("pt.png")
+
+    def __init__(self, pos, all_sprites):
+        super().__init__(all_sprites)
+        self.image = Landing.image
+        self.rect = self.image.get_rect()
+        # вычисляем маску для эффективного сравнения
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
+
+    def update(self, mountain):
+        # если ещё в небе
+        if not pygame.sprite.collide_mask(self, mountain):
+            self.rect = self.rect.move(0, 1)
+
+
+def update(self):
+    self.rect = self.rect.move(self.vx, self.vy)
 
 
 def main():
@@ -45,18 +72,22 @@ def main():
     height = 500
     size = (width, height)
     screen = pygame.display.set_mode(size)
+    fps = 60
+    clock = pygame.time.Clock()
     running = True
     all_sprites = pygame.sprite.Group()
-    pygame.display.set_caption("Boom them all")
-    for i in range(20):
-        BigBoom(width, height, all_sprites)
+    mountain = Mountain(width, height, all_sprites)
+    pygame.display.set_caption("ЗА ВДВ!")
     while running:
+        all_sprites.update(mountain)
         screen.fill(pygame.Color('black'))
         all_sprites.draw(screen)
         for event in pygame.event.get():
-            all_sprites.update(event)
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                Landing(event.pos, all_sprites)
+        clock.tick(fps)
         pygame.display.flip()
     pygame.quit()
 
