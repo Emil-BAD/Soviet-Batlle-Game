@@ -17,49 +17,54 @@ def load_image(name, colorkey=None):
     return image
 
 
-class Border(pygame.sprite.Sprite):
-    # строго вертикальный или строго горизонтальный отрезок
-    def __init__(self, x1, y1, x2, y2, all_sprites, horizontal_borders, vertical_borders):
-        super().__init__(all_sprites)
-        if x1 == x2:  # вертикальная стенка
-            self.add(vertical_borders)
-            self.image = pygame.Surface([1, y2 - y1])
-            self.rect = pygame.Rect(x1, y1, 1, y2 - y1)
-        else:  # горизонтальная стенка
-            self.add(horizontal_borders)
-            self.image = pygame.Surface([x2 - x1, 1])
-            self.rect = pygame.Rect(x1, y1, x2 - x1, 1)
-
-
 class Mountain(pygame.sprite.Sprite):
-    image = load_image("mountains.png")
+    image = load_image("plain1.png")
 
-    def __init__(self, width, height, all_sprites):
-        super().__init__(all_sprites)
+    def __init__(self, width, height, plainers, pos):
+        super().__init__(plainers)
         self.image = Mountain.image
         self.rect = self.image.get_rect()
-        # вычисляем маску для эффективного сравнения
+        self.add(plainers)
         self.mask = pygame.mask.from_surface(self.image)
+        # вычисляем маску для эффективного сравнения
         # располагаем горы внизу
-        self.rect.bottom = height
+        self.rect.x = pos[0]
+        self.rect.y = pos[1]
 
 
 class Landing(pygame.sprite.Sprite):
-    image = load_image("pt.png")
+    image = load_image("cube.png")
 
-    def __init__(self, pos, all_sprites):
+    def __init__(self, pos, all_sprites, plainers, height):
         super().__init__(all_sprites)
         self.image = Landing.image
         self.rect = self.image.get_rect()
+        self.height = height
+        self.plainers = plainers
+        self.flag = 0
+        self.all_sprites = all_sprites
         # вычисляем маску для эффективного сравнения
         self.mask = pygame.mask.from_surface(self.image)
         self.rect.x = pos[0]
         self.rect.y = pos[1]
 
-    def update(self, mountain):
-        # если ещё в небе
-        if not pygame.sprite.collide_mask(self, mountain):
+    def update(self, *event):
+        if self.rect.y > self.height:
+            self.all_sprites.remove(-1)
+        if self.flag == 0:
             self.rect = self.rect.move(0, 1)
+        if self.plainers:
+            a = pygame.sprite.spritecollide(self, self.plainers, False)
+            if len(a) > 0:
+                self.flag = 1
+                self.rect = self.rect.move(0, 0)
+        if event:
+            if event[0].type == pygame.KEYDOWN:
+                if event[0].key == pygame.K_LEFT:
+                    self.rect.x -= 10
+                    # если была нажата стрелка вправо
+                if event[0].key == pygame.K_RIGHT:
+                    self.rect.x += 10
 
 
 def update(self):
@@ -72,22 +77,27 @@ def main():
     height = 500
     size = (width, height)
     screen = pygame.display.set_mode(size)
-    fps = 60
+    fps = 50
     clock = pygame.time.Clock()
     running = True
+    plainers = pygame.sprite.Group()
     all_sprites = pygame.sprite.Group()
-    mountain = Mountain(width, height, all_sprites)
     pygame.display.set_caption("ЗА ВДВ!")
     while running:
-        all_sprites.update(mountain)
         screen.fill(pygame.Color('black'))
-        all_sprites.draw(screen)
         for event in pygame.event.get():
+            all_sprites.update(event)
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                Landing(event.pos, all_sprites)
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if len(all_sprites) != 1:
+                    Landing(event.pos, all_sprites, plainers, height)
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                Mountain(width, height, plainers, event.pos)
         clock.tick(fps)
+        all_sprites.draw(screen)
+        all_sprites.update()
+        plainers.draw(screen)
         pygame.display.flip()
     pygame.quit()
 
