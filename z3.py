@@ -1,10 +1,25 @@
-def linecross(x11, x12, x21, x22):
-    return x21 <= x11 <= x22 or x11 <= x21 <= x12
+import sys
+from PyQt5 import uic
+from PyQt5.QtWidgets import QApplication, QDialog
+
+a = None
 
 
-left1, top1, width1, height1 = map(int, input().split())
-left2, top2, width2, height2 = map(int, input().split())
-if linecross(left1, left1 + width1, left2, left2 + width2) and linecross(top1, top1 + height1, top2, top2 + height2):
-    print('YES')
-else:
-    print('NO')
+class Example(QDialog):
+
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('./data/dialog.ui', self)
+        self.pushButton.clicked.connect(self.run)
+
+    def run(self):
+        global a
+        a = self.lineEdit.text()
+        self.close()
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = Example()
+    ex.show()
+    sys.exit(app.exec())

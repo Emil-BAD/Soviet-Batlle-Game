@@ -1,6 +1,8 @@
 import pygame
 import os
 import sys
+from PyQt5 import uic
+from PyQt5.QtWidgets import QApplication, QDialog
 
 
 def load_image(name, color_key=None):
@@ -27,6 +29,21 @@ tile_images = {"wall": load_image("box.png"), "empty": load_image("grass.png")}
 player_image = load_image("mario.png")
 
 tile_width = tile_height = 50
+
+a = 0
+
+
+class Example(QDialog):
+
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('./data/dialog.ui', self)
+        self.pushButton.clicked.connect(self.run)
+
+    def run(self):
+        global a
+        a = self.lineEdit.text()
+        self.close()
 
 
 class SpriteGroup(pygame.sprite.Group):
@@ -111,32 +128,38 @@ def start_screen():
 
 
 def load_level(filename):
-    filename = "data/" + filename
-    # читаем уровень, убирая символы перевода строки
-    with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
+    try:
+        filename = "data/" + filename
+        # читаем уровень, убирая символы перевода строки
+        with open(filename, 'r') as mapFile:
+            level_map = [line.strip() for line in mapFile]
 
-    # и подсчитываем максимальную длину
-    max_width = max(map(len, level_map))
+        # и подсчитываем максимальную длину
+        max_width = max(map(len, level_map))
 
-    # дополняем каждую строку пустыми клетками ('.')
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+        # дополняем каждую строку пустыми клетками ('.')
+        return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+    except FileNotFoundError:
+        print('Нет такого уровня(')
 
 
 def generate_level(level):
-    new_player, x, y = None, None, None
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if level[y][x] == '.':
-                Tile('empty', x, y)
-            elif level[y][x] == '#':
-                Tile('wall', x, y)
-            elif level[y][x] == '@':
-                Tile('empty', x, y)
-                new_player = Player(x, y)
-                # level[y][x] = "."
-    # вернем игрока, а также размер поля в клетках
-    return new_player, x, y
+    try:
+        new_player, x, y = None, None, None
+        for y in range(len(level)):
+            for x in range(len(level[y])):
+                if level[y][x] == '.':
+                    Tile('empty', x, y)
+                elif level[y][x] == '#':
+                    Tile('wall', x, y)
+                elif level[y][x] == '@':
+                    Tile('empty', x, y)
+                    new_player = Player(x, y)
+                    # level[y][x] = "."
+        # вернем игрока, а также размер поля в клетках
+        return new_player, x, y
+    except TypeError:
+        pass
 
 
 def move(hero, movement):
@@ -151,30 +174,38 @@ def move(hero, movement):
         if x > 0 and level_map[y][x - 1] == ".":
             hero.move(x - 1, y)
     elif movement == "right":
-        if x < max_x - 1 and level_map[y][x + 1] == ".":
+        if x < max_x and level_map[y][x + 1] == ".":
             hero.move(x + 1, y)
 
 
 start_screen()
-level_map = load_level("level3.txt")
-hero, max_x, max_y = generate_level(level_map)
-pygame.display.set_caption("MARIOOO")
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                move(hero, "up")
-            elif event.key == pygame.K_DOWN:
-                move(hero, "down")
-            elif event.key == pygame.K_LEFT:
-                move(hero, "left")
-            elif event.key == pygame.K_RIGHT:
-                move(hero, "right")
-    screen.fill(pygame.Color("black"))
-    sprite_group.draw(screen)
-    hero_group.draw(screen)
-    clock.tick(FPS)
-    pygame.display.flip()
-pygame.quit()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    ex = Example()
+    ex.show()
+start_screen()
+try:
+    level_map = load_level(a)
+    hero, max_x, max_y = generate_level(level_map)
+    pygame.display.set_caption("MARIOOO")
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    move(hero, "up")
+                elif event.key == pygame.K_DOWN:
+                    move(hero, "down")
+                elif event.key == pygame.K_LEFT:
+                    move(hero, "left")
+                elif event.key == pygame.K_RIGHT:
+                    move(hero, "right")
+        screen.fill(pygame.Color("black"))
+        sprite_group.draw(screen)
+        hero_group.draw(screen)
+        clock.tick(FPS)
+        pygame.display.flip()
+    pygame.quit()
+except BaseException:
+    pass
