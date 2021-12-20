@@ -2,7 +2,7 @@ import pygame
 import os
 import sys
 from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication, QDialog
+from PyQt5.QtWidgets import QDialog, QApplication
 
 
 def load_image(name, color_key=None):
