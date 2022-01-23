@@ -3,6 +3,7 @@ import os
 import sys
 import random
 import time
+import sqlite3
 
 
 def load_image(name, color_key=None):
@@ -688,23 +689,55 @@ def sec_func():  # таймер
         return hms
 
 
-def text():
-    global flag2, string_rendered, tring_rendered
+def text(rec):
+    global flag2, string_rendered, string_rendered1, string_rendered2
+    records = rec
     font = pygame.font.Font('fonts/Pixel.ttf', 40)
+    text = f'{records[0][0]}                                {records[0][1]}                                     ' \
+           f'{records[0][2]}'
+    text1 = ' '
+    text2 = ' '
+    if len(records) >= 3:
+        text1 = f'{records[-2][0]}                                {records[-2][1]}                                     ' \
+                f'{records[-2][2]}'
+    if len(records) >= 2   :
+        text2 = f'{records[-1][0]}                                {records[-1][1]}                                     ' \
+                f'{records[-1][2]}'
     if flag2 == 1:
-        string_rendered = font.render(f'{kills}', 1, pygame.Color('white'))
-        tring_rendered = font.render(f'{sec_func()}', 1, pygame.Color('white'))
+        string_rendered = font.render(text, 1, pygame.Color('white'))
+        string_rendered1 = font.render(text1, 1, pygame.Color('white'))
+        string_rendered2 = font.render(text2, 1, pygame.Color('white'))
         flag2 = 0
-    screen.blit(string_rendered, (511, 610))
-    screen.blit(tring_rendered, (926, 610))
+    screen.blit(string_rendered, (100, 690))
+    screen.blit(string_rendered1, (100, 790))
+    screen.blit(string_rendered2, (100, 890))
 
 
-pygame.display.set_caption("Soviet Batlle")
+def sql():
+    con = sqlite3.connect("results1234.sqlite")
+    cur = con.cursor()
+    cur.execute(f"""INSERT INTO res(kills, time) 
+       VALUES('{kills}', '{sec_func()}');""")
+    con.commit()
+    con.close()
+
+
+def check_sql():
+    con = sqlite3.connect("results1234.sqlite")
+    cur = con.cursor()
+    sqlite_select_query = """SELECT * from res"""
+    cur.execute(sqlite_select_query)
+    records = cur.fetchall()
+    return records
+
+
+pygame.display.set_caption("Soviet Battle")
 pygame.init()
 bot = None
 bot2 = None
 string_rendered = None
-tring_rendered = None
+string_rendered1 = None
+string_rendered2 = None
 screen_size = width, height = 1150, 1000
 screen = pygame.display.set_mode(screen_size)
 clock = pygame.time.Clock()
@@ -747,7 +780,6 @@ BOT_EVENT_TYPE2 = 30
 PLAYER_EVENT_TYPE = 30
 BOT_SHOT_TYPE = 30
 BOT_SHOT_TYPE2 = 30
-pygame.time.set_timer(pygame.USEREVENT, 1000)
 
 a = 0
 motor_sound = pygame.mixer.Sound("sounds/motor2.wav")
@@ -755,6 +787,7 @@ spawn = (None, None)
 lose = False
 life = 3
 win = 0
+rec = None
 count = 0
 lvl = 0
 los_pos = None, None
@@ -770,6 +803,7 @@ l3 = Life(22, 2)
 max_x = level_x
 max_y = level_y
 f = 0
+f_for_sql = 0
 pygame.time.set_timer(BOT_EVENT_TYPE, 200)
 pygame.time.set_timer(BOT_SHOT_TYPE, 300)
 startTime = time.time()
@@ -834,7 +868,12 @@ while running:
     player_group.draw(screen)
     star_group.draw(screen)
     if los_pos[1] == 0:
-        text()
+        if f_for_sql == 0:
+            sql()
+            rec = check_sql()
+            f_for_sql = 1
+        if f_for_sql == 1:
+            text(rec)
     clock.tick(FPS)
     pygame.display.flip()
 pygame.quit()
